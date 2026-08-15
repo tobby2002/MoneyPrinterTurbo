@@ -37,6 +37,8 @@ from app.models.schema import (
 from app.services import bgm as bgm_service
 from app.services.utils import video_effects
 from app.utils import file_security, utils
+from extended.tempo_controller import resolve_clip_duration
+
 
 class SubClippedVideoClip:
     def __init__(
@@ -553,8 +555,9 @@ def combine_videos(
         audio_duration = audio_clip.duration
     finally:
         close_clip(audio_clip)
+    max_clip_duration = resolve_clip_duration(max_clip_duration)
     logger.info(f"audio duration: {audio_duration} seconds")
-    logger.info(f"maximum clip duration: {max_clip_duration} seconds")
+    logger.info(f"maximum clip duration: {max_clip_duration} seconds (custom/extended tempo applied)")
     required_video_duration = _get_required_video_duration(audio_duration)
     logger.info(
         f"required video duration: {required_video_duration:.2f} seconds "

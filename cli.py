@@ -260,10 +260,9 @@ Output and exit status:
     )
     video_group.add_argument(
         "--video-clip-duration",
-        type=_positive_int,
         default=None,
         help=(
-            "maximum duration of each source clip in seconds, at least 1 (default: 5)"
+            "maximum duration of each source clip in seconds (e.g. 2.0, 3.0, 5.0, or 'auto' for AI dynamic tempo) (default: 5)"
         ),
     )
     video_group.add_argument(
