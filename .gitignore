@@ -42,3 +42,9 @@ htmlcov/
 .codegraph
 /docs/superpowers
 .understand-anything
+
+# Temporary generated materials and scratch files
+/*.mp4
+/*.png
+scratch/
+
