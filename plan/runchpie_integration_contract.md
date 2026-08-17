@@ -45,6 +45,7 @@ RunchPie 쪽 구현: `engine/runchpie_engine/publish/shorts_mpt.py`
 | `extended/tempo_controller.py` | next_gen §Phase1 | 문장 긴장도 → 컷 길이(2.0/3.5/5.0s) |
 | `extended/persona_registry.py` | next_gen §4 | 채널별 페르소나 = 보이스+속도+컷템포+자막스타일 |
 | `extended/lang_matrix.py` | next_gen §3 | 언어별 보이스·폰트·발화속도·자막 폭 |
+| `extended/storage_janitor.py` | (24시간 운영 필수) | 보존 정책. 태스크 중간물·소재 캐시 정리 |
 
 두 신규 모듈은 RunchPie 캠페인 yaml 에 붙일 블록을 찍어 준다. 사람이 한 번 복사한다.
 
@@ -57,6 +58,32 @@ python -m extended.lang_matrix ja --seconds 35                # 상세 JSON
 
 `lang_matrix` 가 번역을 하지 않는 건 의도다. 번역은 '무엇을 말할까'라서 RunchPie 의
 로컬 워커 몫이고, 여기는 '어떻게 들릴까'만 정한다.
+
+## 24시간 무한 생산 체제에서의 이 저장소 (2026-08-16)
+
+RunchPie 엔진이 **생산과 발행을 분리**했다. 대본은 재고에 쌓이고, 렌더 잡은 발행
+단계에서 쿼터만큼만 나간다. MPT 입장에서 달라지는 것은 둘이다.
+
+1. **잡이 몰려 들어올 수 있다.** `max_concurrent_tasks` 를 CPU 코어에 맞춰 올린다
+   (T7920 은 20C/40T → 4~6). 큐가 차면 429 를 돌려주면 되고, RunchPie 는 그걸
+   실패로 기록하되 다음 주기에 재시도한다. **MPT 가 큐를 책임지고 RunchPie 가
+   재시도를 책임진다** — 어느 쪽도 상대의 상태를 알 필요가 없다.
+2. **디스크가 먼저 죽는다.** 실측으로 태스크 하나가 ~57MB 이고 그 절반이
+   `combined-*.mp4`(자막·음성 입히기 전 중간물)다. 하루 50편이면 2.8GB/일.
+   `extended/storage_janitor.py` 를 주기적으로 돌린다:
+
+   ```bash
+   python -m extended.storage_janitor                              # 현황
+   python -m extended.storage_janitor --slim-days 3 --cache-gb 20  # dry-run
+   python -m extended.storage_janitor --slim-days 3 --cache-gb 20 --apply
+   ```
+
+   `--slim-days` 는 최종물을 남기고 중간물만 지운다. 통째 삭제(`--purge-days`)는
+   따로 지정해야 한다. **기본이 dry-run** 인 건 의도다.
+
+**대본 품질 게이트는 이 저장소가 갖지 않는다.** 대본은 RunchPie 가 만들고
+`engine/runchpie_engine/quality.py` 가 렌더 앞에서 거른다. 여기서 한 번 더 재는 건
+같은 판단을 두 곳에 두는 일이라, 기준이 갈리는 순간 디버깅이 불가능해진다.
 
 ## 앞으로 이 저장소에 들어올 것 (plan/ 기준)
 
